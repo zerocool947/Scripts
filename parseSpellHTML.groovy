@@ -1,18 +1,44 @@
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-File spell = new File("C:\\Users\\user\\Documents\\hypertext_d20_srd\\www.d20srd.org\\srd\\spells\\acidArrow.htm");
-Document doc = Jsoup.parse(spell, "utf-8")
-def id = "1"
-
-def name =  doc.body().select("h1").first().text()
-
-
-def categories = doc.body().select("h4").select("a")
-def school = categories.first().text()
-
+def id = "0"
+def name = "NULL"
+def school = "NULL"
 def subschool = "NULL"
 def descriptor = "NULL"
+def level = "NULL"
+def components = "NULL"
+def castingTime = "NULL"
+def range = "NULL"
+def target = "NULL"
+def effect = "NULL"
+def duration = "NULL"
+def savingThrow = "NULL"
+def spellResistance = "NULL"
+def description = "NULL"
+def materialComponent = "NULL"
+def focus = "NULL"
+
+File spellsFile = new File("C:\\Users\\user\\Documents\\hypertext_d20_srd\\www.d20srd.org\\srd\\spells\\")
+File outputFile = new File("C:\\Users\\user\\Documents\\parsedSpells.txt")
+outputFile.setText("");
+
+File[] spells = spellsFile.listFiles();
+for (spell in spells) {
+//File spell = new File("C:\\Users\\user\\Documents\\hypertext_d20_srd\\www.d20srd.org\\srd\\spells\\acidArrow.htm")
+Document doc = Jsoup.parse(spell, "utf-8")
+
+name =  doc.body().select("h1").first().text().replaceAll("['][,]","")
+
+if (name.equals("Greater (Spell Name)") || name.equals("Lesser (Spell Name)") || name.equals("Minor (Spell Name)")
+ || name.equals("Mass (Spell Name)")) {
+    continue
+}
+
+def methodName = name.replaceAll("\\s", "")
+
+def categories = doc.body().select("h4").select("a")
+school = categories.first().text()
 
 if (categories.size() > 1) {
     subschool = categories.get(1).text()
@@ -22,21 +48,36 @@ if (categories.size() > 2) {
     descriptor = categories.get(2).text()
 }
 
-def statBlock = doc.body().getElementsByClass("statBlock").select("tr")
+def statBlock = doc.body().getElementsByClass("statBlock")
 
-def level = statBlock.get(0).select("td").get(0).text()
-def components = statBlock.get(1).select("td").text()
-def castingTime = statBlock.get(2).select("td").text()
-def range = statBlock.get(3).select("td").text()
-def effect = statBlock.get(4).select("td").text()
-def duration = statBlock.get(5).select("td").text()
-def savingThrow = statBlock.get(6).select("td").text()
-def spellResistance = statBlock.get(7).select("td").text()
-def description = doc.body().select("p").first().text()
+level = statBlock.select("a[href\$=level]").first().parent().nextElementSibling().text()
+if (!statBlock.select("[href=\$=components]").isEmpty()) {
+    components = statBlock.select("a[href\$=components]").first().parent().nextElementSibling().text()
+}
+if (!statBlock.select("[href=\$=castingTime]").isEmpty()) {
+    castingTime = statBlock.select("a[href\$=castingTime]").first().parent().nextElementSibling().text()
+}
+if (!statBlock.select("[href=\$=range]").isEmpty()) {
+    range = statBlock.select("a[href\$=range]").first().parent().nextElementSibling().text()
+}
+if (!statBlock.select("a[href\$=effect]").isEmpty()) {    
+    effect = statBlock.select("a[href\$=effect]").first().parent().nextElementSibling().text()
+}
+if (!statBlock.select("a[href\$=targetorTargets]").isEmpty()) {
+    target = statBlock.select("a[href\$=targetorTargets]").first().parent().nextElementSibling().text()
+}
+if (!statBlock.select("[href=\$=duration]").isEmpty()) {
+    duration = statBlock.select("a[href\$=duration]").first().parent().nextElementSibling().text()
+}
+if (!statBlock.select("a[href\$=savingThrow]").isEmpty()) {
+    savingThrow = statBlock.select("a[href\$=savingThrow]").first().parent().nextElementSibling().text()
+}
+if (!statBlock.select("a[href\$=spellResistance]").isEmpty()) {
+    spellResistance = statBlock.select("a[href\$=spellResistance]").first().parent().nextElementSibling().text()
+}
+description = doc.body().select("p").first().text()
 
 def materialOrFocusList = doc.body().select("h6")
-def materialComponent = "NULL"
-def focus = "NULL"
 
 if (materialOrFocusList.size() > 0) {
     if (materialOrFocusList.get(0).text().equals("Material Component")) {
@@ -56,24 +97,9 @@ if (materialOrFocusList.size() > 1) {
     }
 }
 
-println name
-println school
-println subschool
-println descriptor
-println level
-println components
-println castingTime
-println range
-println effect
-println duration
-println savingThrow
-println spellResistance
-println description
-println materialComponent
-println focus
+//println level
 
-
-def databaseString = /String acidArrowQueryString = "insert into " +
+def databaseString = /String ${methodName}QueryString = "insert into " +
                 SpellBookDatabaseManager.DB_NAME + 
                 "." +
                 SpellBookDatabaseManager.SPELL_TABLE_NAME + 
@@ -86,6 +112,7 @@ def databaseString = /String acidArrowQueryString = "insert into " +
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_LEVEL + ", " +
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_COMPONENTS + ", " +
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_CASTING_TIME + ", " +
+                SpellBookDatabaseManager.SPELL_TABLE_ROW_TARGET + ", " +
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_RANGE + ", " +
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_EFFECT + ", " +
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_DURATION + ", " +
@@ -95,8 +122,9 @@ def databaseString = /String acidArrowQueryString = "insert into " +
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_MATERIAL_COMPONENT + ", " +
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_FOCUS + ", " +
                 ")" +
-                "${id},${name},${school},${subschool},${descriptor},${level},${components}," +
-                "${castingTime},${range},${effect},${duration},${savingThrow}," +
-                "${spellResistance},${description},${materialComponent},${focus}" +
+                "'${id}','${name}','${school}','${subschool}','${descriptor}','${level}','${components}'," +
+                "'${castingTime}','${target},'${range}','${effect}','${duration}','${savingThrow}'," +
+                "'${spellResistance}','${description}','${materialComponent}','${focus}'" +
                 ");";/
-println databaseString
+outputFile << "${databaseString}\n\n"
+}
