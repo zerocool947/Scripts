@@ -1,7 +1,7 @@
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-def id = "0"
+//def id = 0
 def name = "NULL"
 def school = "NULL"
 def subschool = "NULL"
@@ -15,9 +15,11 @@ def effect = "NULL"
 def duration = "NULL"
 def savingThrow = "NULL"
 def spellResistance = "NULL"
-def description = "NULL"
+//description can't be null anyways and needs to start blank
+def description = ""
 def materialComponent = "NULL"
 def focus = "NULL"
+def xpCost = "NULL"
 
 File spellsFile = new File("C:\\Users\\user\\Documents\\hypertext_d20_srd\\www.d20srd.org\\srd\\spells\\")
 File outputFile = new File("C:\\Users\\user\\Documents\\parsedSpells.txt")
@@ -26,16 +28,18 @@ outputFile.setText("");
 File[] spells = spellsFile.listFiles();
 for (spell in spells) {
 //File spell = new File("C:\\Users\\user\\Documents\\hypertext_d20_srd\\www.d20srd.org\\srd\\spells\\acidArrow.htm")
-Document doc = Jsoup.parse(spell, "utf-8")
+//id = id+1
+Document doc = Jsoup.parse(spell, "utf-8") 
 
-name =  doc.body().select("h1").first().text().replaceAll("['][,]","")
+name =  doc.body().select("h1").first().text()
 
-if (name.equals("Greater (Spell Name)") || name.equals("Lesser (Spell Name)") || name.equals("Minor (Spell Name)")
- || name.equals("Mass (Spell Name)")) {
+if (name.equals("Greater (Spell Name)") || name.equals("Lesser (Spell Name)") || name.equals("Mass (Spell Name)")) {
     continue
 }
 
-def methodName = name.replaceAll("\\s", "")
+def methodName = name.replaceAll(/[^A-Za-z]/,"")
+
+name = name.replaceAll("'","’")
 
 def categories = doc.body().select("h4").select("a")
 school = categories.first().text()
@@ -75,25 +79,23 @@ if (!statBlock.select("a[href\$=savingThrow]").isEmpty()) {
 if (!statBlock.select("a[href\$=spellResistance]").isEmpty()) {
     spellResistance = statBlock.select("a[href\$=spellResistance]").first().parent().nextElementSibling().text()
 }
-description = doc.body().select("p").first().text()
 
-def materialOrFocusList = doc.body().select("h6")
+def paragraphElementStart =  doc.body().select("p")
 
-if (materialOrFocusList.size() > 0) {
-    if (materialOrFocusList.get(0).text().equals("Material Component")) {
-        materialComponent = materialOrFocusList.get(0).nextElementSibling().text()
-    }
-    else if (materialOrFocusList.get(0).equals("Focus")) {
-        focus = materialOrFocusList.get(0).nextElementSibling().text()
-    }
-}
-
-if (materialOrFocusList.size() > 1) {
-    if (materialOrFocusList.get(1).text().equals("Material Component")) {
-        materialComponent = materialOrFocusList.get(1).nextElementSibling().text()
-    }
-    else if (materialOrFocusList.get(1).text().equals("Focus")) {
-        focus = materialOrFocusList.get(1).nextElementSibling().text()
+for (paragraphElement in paragraphElementStart) {
+    if (paragraphElement.previousElementSibling() != null) {
+        if (paragraphElement.previousElementSibling().text().equals("Material Component")) {
+            materialComponent = paragraphElement.text()
+        }
+        else if (paragraphElement.previousElementSibling().text().equals("Focus")) {
+            focus = paragraphElement.text()
+        }
+        else if (paragraphElement.previousElementSibling().text().equals("XP Cost")) {
+            xpCost = paragraphElement.text()
+        }
+        else {
+            description += paragraphElement.text() + " "
+        }
     }
 }
 
@@ -104,7 +106,6 @@ def databaseString = /String ${methodName}QueryString = "insert into " +
                 "." +
                 SpellBookDatabaseManager.SPELL_TABLE_NAME + 
                 "(" + 
-                SpellBookDatabaseManager.SPELL_TABLE_ROW_ID + ", " + 
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_NAME + ", " +
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_SCHOOL + ", " + 
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_SUBSCHOOL + ", " +
@@ -121,10 +122,12 @@ def databaseString = /String ${methodName}QueryString = "insert into " +
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_DESCRIPTION + ", " +
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_MATERIAL_COMPONENT + ", " +
                 SpellBookDatabaseManager.SPELL_TABLE_ROW_FOCUS + ", " +
+                SpellBookDatabaseManager.SPELL_TABLE_ROW_XP_COST +
                 ")" +
-                "'${id}','${name}','${school}','${subschool}','${descriptor}','${level}','${components}'," +
-                "'${castingTime}','${target},'${range}','${effect}','${duration}','${savingThrow}'," +
-                "'${spellResistance}','${description}','${materialComponent}','${focus}'" +
-                ");";/
+                "'${name}','${school}','${subschool}','${descriptor}','${level}','${components}'," +
+                "'${castingTime}','${target}','${range}','${effect}','${duration}','${savingThrow}'," +
+                "'${spellResistance}','${description}','${materialComponent}','${focus}','${xpCost}'" +
+                ");";
+                db.execSQL(${methodName}QueryString);/
 outputFile << "${databaseString}\n\n"
 }
