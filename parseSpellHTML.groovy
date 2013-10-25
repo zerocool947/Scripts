@@ -1,7 +1,7 @@
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-//def id = 0
+def id = 0
 
 File spellsFile = new File("C:\\Users\\user\\Documents\\hypertext_d20_srd\\www.d20srd.org\\srd\\spells\\")
 File outputFile = new File("C:\\Users\\user\\Documents\\parsedSpells.txt")
@@ -28,7 +28,7 @@ for (spell in spells) {
     def focus = "NULL"
     def xpCost = "NULL"
     //File spell = new File("C:\\Users\\user\\Documents\\hypertext_d20_srd\\www.d20srd.org\\srd\\spells\\acidArrow.htm")
-    //id = id+1
+    id = id+1
     Document doc = Jsoup.parse(spell, "utf-8") 
     
     name =  doc.body().select("h1").first().text()
@@ -45,18 +45,23 @@ for (spell in spells) {
     school = categories.first().text()
     
     if (categories.size() > 1) {
-        subschool = categories.get(1).text()
+        subschool = "("+categories.get(1).text()+")"
     }
     
     if (categories.size() > 2) {
-        descriptor = categories.get(2).text()
+        if (categories.get(2).attr("href").startsWith("..")) {
+            descriptor = "[" + categories.get(2).text() + "]"
+        }
+        else {
+            descriptor = categories.get(2).parent().text().minus(school).minus(subschool).minus("(").minus(")").trim()
+        }
     }
     
     //Checking to see if the stats exist, collecting them if they do
     
     def statBlock = doc.body().getElementsByClass("statBlock")
     
-    level = statBlock.select("a[href\$=level]").first().parent().nextElementSibling().text()
+    levelString = statBlock.select("a[href\$=level]").first().parent().nextElementSibling().text()
     if (!statBlock.select("[href\$=components]").isEmpty()) {
         components = statBlock.select("a[href\$=components]").first().parent().nextElementSibling().text()
     }
@@ -119,7 +124,7 @@ for (spell in spells) {
     name = "\'"+name+"\'"
     school = "\'"+school+"\'"
     description = "\'"+description+"\'"
-    level = "\'"+level+"\'"
+    //level = "\'"+level+"\'"
     
     if(!subschool.equals("NULL")) {
         subschool = "\'"+subschool+"\'"
@@ -167,11 +172,11 @@ for (spell in spells) {
     def databaseString = /String ${methodName}QueryString = "insert into " +
                     SpellBookDatabaseManager.SPELL_TABLE_NAME + 
                     "(" + 
+                    SpellBookDatabaseManager.SPELL_TABLE_ROW_ID + ", " + 
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_NAME + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_SCHOOL + ", " + 
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_SUBSCHOOL + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_DESCRIPTOR + ", " +
-                    SpellBookDatabaseManager.SPELL_TABLE_ROW_LEVEL + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_COMPONENTS + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_CASTING_TIME + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_TARGET + ", " +
@@ -186,32 +191,58 @@ for (spell in spells) {
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_XP_COST +
                     ")" +
                     "VALUES(" + 
-                    "${name},${school},${subschool},${descriptor},${level},${components}," +
+                    "${id},${name},${school},${subschool},${descriptor},${components}," +
                     "${castingTime},${target},${range},${effect},${duration},${savingThrow}," +
                     "${spellResistance},${description},${materialComponent},${focus},${xpCost}" +
                     ");";
                     db.execSQL(${methodName}QueryString);/
     outputFile << "${databaseString}\n\n"
-    
+
     //processing level, parsing and replacing shorthand
-    def classLevelDabaseString = ""
-    def levelCommaSplit = level.split(",")
+    def className
+    def levelCommaSplit = levelString.split(",")
+    //println "my LevelCommaSplit is " + levelCommaSplit
+    
     for (classLevelPair in levelCommaSplit) {
+        def classLevelDatabaseString = ""
         def classLevelArray
-        def classLevelPairSplit = classLevelPair.split(" ")
+        def classLevelPairSplit = classLevelPair.trim().split(" ")
         level = classLevelPairSplit[1]
         if (classLevelPairSplit[0].contains("/")) {
-            //parse it here, get an 'array', add it to classLevelArray
+            def classSplit = classLevelPairSplit[0].split("/")
+        
+            for (classNameString in classSplit) {
+                className = classNameString
+
+                def classLevelDBTemplate = /db.execSQL("insert into " +
+                    SpellBookDatabaseManager.SPELL_CLASS_LEVEL_TABLE_NAME +
+                    "(" + 
+                    SpellBookDatabaseManager.SPELL_CLASS_LEVEL_ROW_SPELL_ID + ", " + 
+                    SpellBookDatabaseManager.SPELL_CLASS_LEVEL_ROW_CLASS + ", " + 
+                    SpellBookDatabaseManager.SPELL_CLASS_LEVEL_ROW_LEVEL + 
+                    ")"+
+                    "VALUES(" + 
+                    "${id},${className},${level});");/
+                //println classLevelDBTemplate
+                
+                classLevelDatabaseString += "${classLevelDBTemplate}\n"
+            }
         }
         else {
-            classLevelArray << classLevelPairSplit[0]
+            className = classLevelPairSplit[0]
+            def classLevelDBTemplate = /db.execSQL("insert into " +
+                    SpellBookDatabaseManager.SPELL_CLASS_LEVEL_TABLE_NAME +
+                    "(" + 
+                    SpellBookDatabaseManager.SPELL_CLASS_LEVEL_ROW_SPELL_ID + ", " + 
+                    SpellBookDatabaseManager.SPELL_CLASS_LEVEL_ROW_CLASS + ", " + 
+                    SpellBookDatabaseManager.SPELL_CLASS_LEVEL_ROW_LEVEL + 
+                    ")"+
+                    "VALUES(" + 
+                    "${id},${className},${level});");/
+            //println classLevelDBTemplate
+            classLevelDatabaseString += "${classLevelDBTemplate}\n"
         }
-        
-
-
-        //iterate over classLevelArray, set the output string to the database string 
-    }
-
-    //add database string to the output file after
-    
+            
+        outputFile << "${classLevelDatabaseString}"
+    }    
 }
