@@ -222,7 +222,7 @@ for (spell in spells) {
                     SpellBookDatabaseManager.SPELL_CLASS_LEVEL_ROW_LEVEL + 
                     ")"+
                     "VALUES(" + 
-                    "${id},${className},${level});");/
+                    "${id},'${className}',${level});");/
                 //println classLevelDBTemplate
                 
                 classLevelDatabaseString += "${classLevelDBTemplate}\n"
@@ -238,7 +238,7 @@ for (spell in spells) {
                     SpellBookDatabaseManager.SPELL_CLASS_LEVEL_ROW_LEVEL + 
                     ")"+
                     "VALUES(" + 
-                    "${id},${className},${level});");/
+                    "${id},'${className}',${level});");/
             //println classLevelDBTemplate
             classLevelDatabaseString += "${classLevelDBTemplate}\n"
         }
