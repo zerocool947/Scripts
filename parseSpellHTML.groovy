@@ -24,7 +24,9 @@ for (spell in spells) {
     def spellResistance = "NULL"
     //description can't be null anyways and needs to start blank
     def description = ""
+    def arcMaterialComponent = "NULL"
     def materialComponent = "NULL"
+    def arcFocus = "NULL"
     def focus = "NULL"
     def xpCost = "NULL"
     //File spell = new File("C:\\Users\\user\\Documents\\hypertext_d20_srd\\www.d20srd.org\\srd\\spells\\acidArrow.htm")
@@ -106,12 +108,18 @@ for (spell in spells) {
             else if (paragraphElement.previousElementSibling().text().equals("XP Cost")) {
                 xpCost = paragraphElement.text()
             }
+            else if (paragraphElement.previousElementSibling().text().equals("Arcane Material Component")) {
+                arcMaterialComponent = paragraphElement.text()
+            }
+            else if (paragraphElement.previousElementSibling().text().equals("Arcane Focus")) {
+                arcFocus = paragraphElement.text()
+            }
             else if (paragraphElement.previousElementSibling().tag().getName().equals("h6")){
                 description += /\n/ + paragraphElement.previousElementSibling().text() + /\n/
-                description += paragraphElement.text() + /\n/
+                description += paragraphElement.text() + "<br />"
             }
             else {
-                description += paragraphElement.text() + /\n/
+                description += paragraphElement.text() + "<br />"
             }
         }
     
@@ -119,12 +127,12 @@ for (spell in spells) {
     
     
     //Escaping all bad characters, adding proper quotes, preparation for inserting into database
-    description.replaceAll("\'","\'\'")
+    description = description.replaceAll("\'","\'\'")
+    description = description.replaceAll("’", "\'\'")
     
     name = "\'"+name+"\'"
     school = "\'"+school+"\'"
     description = "\'"+description+"\'"
-    //level = "\'"+level+"\'"
     
     if(!subschool.equals("NULL")) {
         subschool = "\'"+subschool+"\'"
@@ -160,8 +168,13 @@ for (spell in spells) {
         focus = "\'"+focus+"\'"
     }
     if (!materialComponent.equals("NULL")) {
-        materialComponent.replaceAll("\'", "\'\'")
         materialComponent = "\'"+materialComponent+"\'"
+    }
+    if (!arcMaterialComponent.equals("NULL")) {
+        arcMaterialComponent = "\'"+arcMaterialComponent+"\'"
+    }
+    if (!arcFocus.equals("NULL")) {
+        arcFocus = "\'"+arcFocus+"\'"
     }
     if (!xpCost.equals("NULL")) {
         xpCost = "\'"+xpCost+"\'"
@@ -187,13 +200,16 @@ for (spell in spells) {
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_SPELL_RESISTANCE + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_DESCRIPTION + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_MATERIAL_COMPONENT + ", " +
+                    SpellBookDatabaseManager.SPELL_TABLE_ROW_ARCANE_MATERIAL_COMPONENT + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_FOCUS + ", " +
+                    SpellBookDatabaseManager.SPELL_TABLE_ROW_ARCANE_FOCUS + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_XP_COST +
                     ")" +
                     "VALUES(" + 
                     "${id},${name},${school},${subschool},${descriptor},${components}," +
                     "${castingTime},${target},${range},${effect},${duration},${savingThrow}," +
-                    "${spellResistance},${description},${materialComponent},${focus},${xpCost}" +
+                    "${spellResistance},${description},${arcMaterialComponent},${materialComponent}," +
+                    "${focus},${arcFocus},${xpCost}" +
                     ");";
                     db.execSQL(${methodName}QueryString);/
     outputFile << "${databaseString}\n\n"
