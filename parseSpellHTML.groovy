@@ -116,15 +116,31 @@ for (spell in spells) {
             }
             else if (paragraphElement.previousElementSibling().tag().getName().equals("h6")){
                 description += /\n/ + paragraphElement.previousElementSibling().text() + /\n/
-                description += paragraphElement.text() + "<br />"
+                description += paragraphElement.text() + "<br /><br />"
+            }
+            else if (paragraphElement.nextElementSibling().tag().getName().equals("div")) {
+                description += paragraphElement.text() + "<br />"    
+            }
+            else if (paragraphElement.previousElementSibling().tag().getName().equals("ul")) {
+            
+                description += "<br />"
+                def bulletElements = paragraphElement.previousElementSibling().children()
+                for (bulletElement in bulletElements) {
+                    description +=  bulletElement.text() + "<br />"
+                    
+                    /*println "i'm in spell " + name 
+                    println "My bullet text is " + bulletElement.text()
+                    println "" */
+                }
+                
+                description += "<br />"
+                
             }
             else {
                 description += paragraphElement.text() + "<br />"
             }
         }
-    
     }
-    
     
     //Escaping all bad characters, adding proper quotes, preparation for inserting into database
     description = description.replaceAll("\'","\'\'")
