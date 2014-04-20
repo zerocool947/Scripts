@@ -84,7 +84,7 @@ function throw()
 	ReleaseKey("slash")
 	Sleep(300)
 	isThrowCocked = false
-isNeitherGunOut = false
+    isNeitherGunOut = false
 	if isPrimaryOut then
 		drawPrimary()
 	else
