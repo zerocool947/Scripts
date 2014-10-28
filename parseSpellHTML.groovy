@@ -3,8 +3,8 @@ import org.jsoup.nodes.Document
 
 def id = 0
 
-File spellsFile = new File("C:\\Users\\user\\Documents\\hypertext_d20_srd\\www.d20srd.org\\srd\\spells\\")
-File outputFile = new File("C:\\Users\\user\\Documents\\parsedSpells.txt")
+File spellsFile = new File("D:\\Utilities\\www.d20srd.org\\srd\\spells\\")
+File outputFile = new File("D:\\Utilities\\www.d20srd.org\\parsedSpells.txt")
 outputFile.setText("");
 
 File[] spells = spellsFile.listFiles();
@@ -30,18 +30,18 @@ for (spell in spells) {
     def focus = "NULL"
     def xpCost = "NULL"
     //File spell = new File("C:\\Users\\user\\Documents\\hypertext_d20_srd\\www.d20srd.org\\srd\\spells\\acidArrow.htm")
-    id = id+1
-    Document doc = Jsoup.parse(spell, "utf-8") 
+    Document doc = Jsoup.parse(spell, "utf-8")
     
     name =  doc.body().select("h1").first().text()
     
     if (name.equals("Greater (Spell Name)") || name.equals("Lesser (Spell Name)") || name.equals("Mass (Spell Name)")) {
+        //this should be enough to fix the ID skipping issue too, now that it's increment in the correct space
         continue
     }
     
     def methodName = name.replaceAll(/[^A-Za-z]/,"")
     
-    name = name.replaceAll("'","’")
+    name = name.replaceAll("'","'")
     
     def categories = doc.body().select("h4").select("a")
     school = categories.first().text()
@@ -144,7 +144,7 @@ for (spell in spells) {
     
     //Escaping all bad characters, adding proper quotes, preparation for inserting into database
     description = description.replaceAll("\'","\'\'")
-    description = description.replaceAll("’", "\'\'")
+    description = description.replaceAll("ï¿½", "\'\'")
     
     name = "\'"+name+"\'"
     school = "\'"+school+"\'"
@@ -201,7 +201,7 @@ for (spell in spells) {
     def databaseString = /String ${methodName}QueryString = "insert into " +
                     SpellBookDatabaseManager.SPELL_TABLE_NAME + 
                     "(" + 
-                    SpellBookDatabaseManager.SPELL_TABLE_ROW_ID + ", " + 
+                    SpellBookDatabaseManager.SPELL_TABLE_ROW_ID + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_NAME + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_SCHOOL + ", " + 
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_SUBSCHOOL + ", " +
@@ -276,5 +276,7 @@ for (spell in spells) {
         }
             
         outputFile << "${classLevelDatabaseString}"
-    }    
+    }
+
+    id++
 }
