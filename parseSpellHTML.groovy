@@ -19,6 +19,7 @@ for (spell in spells) {
     def range = "NULL"
     def target = "NULL"
     def effect = "NULL"
+    def area = "NULL"
     def duration = "NULL"
     def savingThrow = "NULL"
     def spellResistance = "NULL"
@@ -42,12 +43,13 @@ for (spell in spells) {
     def methodName = name.replaceAll(/[^A-Za-z]/,"")
     
     name = name.replaceAll("'","'")
-    
+    name = "\'"+name+"\'"
+
     def categories = doc.body().select("h4").select("a")
-    school = categories.first().text()
+    school = "\'"+categories.first().text()+"\'"
     
     if (categories.size() > 1) {
-        subschool = "("+categories.get(1).text()+")"
+        subschool = "\'("+categories.get(1).text()+")\'"
     }
     
     if (categories.size() > 2) {
@@ -58,35 +60,42 @@ for (spell in spells) {
             descriptor = categories.get(2).parent().text().minus(school).minus(subschool).minus("(").minus(")").trim()
         }
     }
-    
+
+    if (!descriptor.equals("NULL")) {
+        descriptor = "\'"+descriptor+"\'"
+    }
+
     //Checking to see if the stats exist, collecting them if they do
     
     def statBlock = doc.body().getElementsByClass("statBlock")
     
     levelString = statBlock.select("a[href\$=level]").first().parent().nextElementSibling().text()
     if (!statBlock.select("[href\$=components]").isEmpty()) {
-        components = statBlock.select("a[href\$=components]").first().parent().nextElementSibling().text()
+        components = "\'"+statBlock.select("a[href\$=components]").first().parent().nextElementSibling().text()+"\'"
     }
     if (!statBlock.select("a[href\$=castingTime]").isEmpty()) {
-        castingTime = statBlock.select("a[href\$=castingTime]").first().parent().nextElementSibling().text()
+        castingTime = "\'"+statBlock.select("a[href\$=castingTime]").first().parent().nextElementSibling().text()+"\'"
     }
     if (!statBlock.select("a[href\$=range]").isEmpty()) {
-        range = statBlock.select("a[href\$=range]").first().parent().nextElementSibling().text()
+        range = "\'"+statBlock.select("a[href\$=range]").first().parent().nextElementSibling().text()+"\'"
+    }
+    if (!statBlock.select("a[href\$=area]").isEmpty()) {
+        area = "\'"+statBlock.select("a[href\$=area]").first().parent().nextElementSibling().text()+"\'"
     }
     if (!statBlock.select("a[href\$=effect]").isEmpty()) {    
-        effect = statBlock.select("a[href\$=effect]").first().parent().nextElementSibling().text()
+        effect = "\'"+statBlock.select("a[href\$=effect]").first().parent().nextElementSibling().text()+"\'"
     }
     if (!statBlock.select("a[href\$=targetorTargets]").isEmpty()) {
-        target = statBlock.select("a[href\$=targetorTargets]").first().parent().nextElementSibling().text()
+        target = "\'"+statBlock.select("a[href\$=targetorTargets]").first().parent().nextElementSibling().text()+"\'"
     }
     if (!statBlock.select("a[href\$=duration]").isEmpty()) {
-        duration = statBlock.select("a[href\$=duration]").first().parent().nextElementSibling().text()
+        duration = "\'"+statBlock.select("a[href\$=duration]").first().parent().nextElementSibling().text()+"\'"
     }
     if (!statBlock.select("a[href\$=savingThrow]").isEmpty()) {
-        savingThrow = statBlock.select("a[href\$=savingThrow]").first().parent().nextElementSibling().text()
+        savingThrow = "\'"+statBlock.select("a[href\$=savingThrow]").first().parent().nextElementSibling().text()+"\'"
     }
     if (!statBlock.select("a[href\$=spellResistance]").isEmpty()) {
-        spellResistance = statBlock.select("a[href\$=spellResistance]").first().parent().nextElementSibling().text()
+        spellResistance = "\'"+statBlock.select("a[href\$=spellResistance]").first().parent().nextElementSibling().text()+"\'"
     }
     
     def paragraphElementStart =  doc.body().select("p")
@@ -100,29 +109,34 @@ for (spell in spells) {
     //getting description and other bits, working around headings and other odd formatting
         if (paragraphElement.previousElementSibling() != null)  {
             if (paragraphElement.previousElementSibling().text().equals("Material Component")) {
-                materialComponent = paragraphElement.text()
+                materialComponent = "\'"+paragraphElement.text()+"\'"
             }
             else if (paragraphElement.previousElementSibling().text().equals("Focus")) {
-                focus = paragraphElement.text()
+                focus = "\'"+paragraphElement.text()+"\'"
             }
             else if (paragraphElement.previousElementSibling().text().equals("XP Cost")) {
-                xpCost = paragraphElement.text()
+                xpCost ="\'"+ paragraphElement.text()+"\'"
             }
             else if (paragraphElement.previousElementSibling().text().equals("Arcane Material Component")) {
-                arcMaterialComponent = paragraphElement.text()
+                arcMaterialComponent = "\'"+paragraphElement.text()+"\'"
             }
             else if (paragraphElement.previousElementSibling().text().equals("Arcane Focus")) {
-                arcFocus = paragraphElement.text()
+                arcFocus = "\'"+paragraphElement.text()+"\'"
             }
             else if (paragraphElement.previousElementSibling().tag().getName().equals("h6")){
+                if (name == "\'Air Walk\'") {
+                    println "I'm making a h6 " + paragraphElement.text();
+                }
+                //weird listed effects, non bulleted.
                 description += /\n/ + paragraphElement.previousElementSibling().text() + /\n/
                 description += paragraphElement.text() + "<br /><br />"
             }
             else if (paragraphElement.nextElementSibling().tag().getName().equals("div")) {
-                description += paragraphElement.text() + "<br />"    
+                //This means this is the last paragraph in the description
+                description += "<br />" + paragraphElement.text() + "<br />"
             }
             else if (paragraphElement.previousElementSibling().tag().getName().equals("ul")) {
-            
+                //bulleted lists
                 description += "<br />"
                 def bulletElements = paragraphElement.previousElementSibling().children()
                 for (bulletElement in bulletElements) {
@@ -137,64 +151,18 @@ for (spell in spells) {
                 
             }
             else {
-                description += paragraphElement.text() + "<br />"
+                //default, <p> tag
+                description += "<br />" + paragraphElement.text() + "<br />"
             }
         }
     }
     
     //Escaping all bad characters, adding proper quotes, preparation for inserting into database
-    description = description.replaceAll("\'","\'\'")
+    description = description.replaceAll("'","\'\'")
     description = description.replaceAll("�", "\'\'")
     
-    name = "\'"+name+"\'"
-    school = "\'"+school+"\'"
     description = "\'"+description+"\'"
-    
-    if(!subschool.equals("NULL")) {
-        subschool = "\'"+subschool+"\'"
-    }
-    if (!descriptor.equals("NULL")) {
-        descriptor = "\'"+descriptor+"\'"
-    }
-    if (!components.equals("NULL")) {
-        components = "\'"+components+"\'"
-    }
-    if (!castingTime.equals("NULL")) {
-        castingTime = "\'"+castingTime+"\'"
-    }
-    if (!target.equals("NULL")) {
-        target = "\'"+target+"\'"
-    }
-    if (!range.equals("NULL")) {
-        range = "\'"+range+"\'"
-    }
-    if (!effect.equals("NULL")) {
-        effect = "\'"+effect+"\'"
-    }
-    if (!duration.equals("NULL")) {
-        duration = "\'"+duration+"\'"
-    }
-    if (!savingThrow.equals("NULL")) {
-        savingThrow = "\'"+savingThrow+"\'"
-    }
-    if (!spellResistance.equals("NULL")) {
-        spellResistance = "\'"+spellResistance+"\'"
-    }
-    if (!focus.equals("NULL")) {
-        focus = "\'"+focus+"\'"
-    }
-    if (!materialComponent.equals("NULL")) {
-        materialComponent = "\'"+materialComponent+"\'"
-    }
-    if (!arcMaterialComponent.equals("NULL")) {
-        arcMaterialComponent = "\'"+arcMaterialComponent+"\'"
-    }
-    if (!arcFocus.equals("NULL")) {
-        arcFocus = "\'"+arcFocus+"\'"
-    }
-    if (!xpCost.equals("NULL")) {
-        xpCost = "\'"+xpCost+"\'"
-    }
+
     
     //definging the replacement string
     
@@ -211,6 +179,7 @@ for (spell in spells) {
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_TARGET + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_RANGE + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_EFFECT + ", " +
+                    SpellBookDatabaseManager.SPELL_TABLE_ROW_AREA + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_DURATION + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_SAVING_THROW + ", " +
                     SpellBookDatabaseManager.SPELL_TABLE_ROW_SPELL_RESISTANCE + ", " +
@@ -223,7 +192,7 @@ for (spell in spells) {
                     ")" +
                     "VALUES(" + 
                     "${id},${name},${school},${subschool},${descriptor},${components}," +
-                    "${castingTime},${target},${range},${effect},${duration},${savingThrow}," +
+                    "${castingTime},${target},${range},${effect},${area},${duration},${savingThrow}," +
                     "${spellResistance},${description},${arcMaterialComponent},${materialComponent}," +
                     "${focus},${arcFocus},${xpCost}" +
                     ");";
